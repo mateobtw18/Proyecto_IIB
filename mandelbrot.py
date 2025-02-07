@@ -261,14 +261,18 @@ def on_motion(event):
     if is_animating:
         return
     if pan_start and event.inaxes == ax:
-        dx = event.xdata - pan_start[0]
-        dy = event.ydata - pan_start[1]
-        xmin -= dx
-        xmax -= dx
-        ymin -= dy
-        ymax -= dy
-        pan_start = (event.xdata, event.ydata)
-        actualizar_fractal()
+        try:
+            dx = event.xdata - pan_start[0]
+            dy = event.ydata - pan_start[1]
+            xmin -= dx
+            xmax -= dx
+            ymin -= dy
+            ymax -= dy
+            pan_start = (event.xdata, event.ydata)
+            actualizar_fractal()
+        except Exception as e:
+            print(f"Error durante el panning: {e}")
+            pan_start = None  # Reinicia el estado de panning
 
 # ---------------------------------------------------------------------
 # Conexión de eventos
