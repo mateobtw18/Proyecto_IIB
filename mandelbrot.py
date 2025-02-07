@@ -34,8 +34,6 @@ original_bounds = (-2.0, 1.0, -1.5, 1.5)
 xmin, xmax, ymin, ymax = original_bounds
 ancho, alto = 800, 800
 max_iter = 1000  # Valor inicial de iteraciones
-
-# Bandera para evitar interacción durante animaciones
 is_animating = False
 
 # ---------------------------------------------------------------------
@@ -52,7 +50,6 @@ ax.set_title("Mandelbrot Interactivo (Zoom: 'z', Undo: 'u')")
 ax.set_xlabel("Re(c)")
 ax.set_ylabel("Im(c)")
 
-# Se genera inicialmente la imagen de alta resolución.
 mandelbrot_img = generar_mandelbrot(xmin, xmax, ymin, ymax, ancho, alto, max_iter)
 im = ax.imshow(mandelbrot_img, extent=(xmin, xmax, ymin, ymax),
                cmap='hot', interpolation='bilinear')
@@ -79,41 +76,56 @@ def actualizar_fractal(low_res=True):
         pass
 
 # ---------------------------------------------------------------------
-# Función de animación para transiciones suaves (usada en los botones)
-# Interpola el centro y las dimensiones para dirigir el zoom correctamente.
+# Función de animación mejorada con zoom adaptativo
 # ---------------------------------------------------------------------
-def animate_zoom_to(new_xmin, new_xmax, new_ymin, new_ymax, steps=50, delay=0.03):
+def animate_zoom_to(new_xmin, new_xmax, new_ymin, new_ymax, steps=10, delay=0.005):
     global xmin, xmax, ymin, ymax, zoom_stack, is_animating
     is_animating = True
-    # Calcula el centro y dimensiones del rango objetivo.
-    target_center_x = (new_xmin + new_xmax) / 2.0
-    target_center_y = (new_ymin + new_ymax) / 2.0
+
+    # Calcula la relación de zoom entre la vista actual y el objetivo
+    current_width = xmax - xmin
+    current_height = ymax - ymin
     target_width = new_xmax - new_xmin
     target_height = new_ymax - new_ymin
 
-    # Calcula el centro y dimensiones de la vista actual.
-    current_center_x = (xmin + xmax) / 2.0
-    current_center_y = (ymin + ymax) / 2.0
+    # Ajusta dinámicamente los pasos basado en la relación de zoom
+    zoom_ratio = max(current_width / target_width, current_height / target_height)
+    adaptive_steps = max(10, int(np.log(zoom_ratio) * 15))  # Más pasos para zooms profundos
+    adaptive_delay = max(0.001, 0.02 / (zoom_ratio**0.5))    # Retardo más corto para zooms grandes
+
+    # Valores objetivo para interpolación
+    target_center_x = (new_xmin + new_xmax) / 2
+    target_center_y = (new_ymin + new_ymax) / 2
+    target_width = new_xmax - new_xmin
+    target_height = new_ymax - new_ymin
+
+    # Valores iniciales
+    current_center_x = (xmin + xmax) / 2
+    current_center_y = (ymin + ymax) / 2
     current_width = xmax - xmin
     current_height = ymax - ymin
 
     # Guarda el estado actual para permitir 'undo'
     zoom_stack.append((xmin, xmax, ymin, ymax))
 
-    for step in range(steps):
-        t = (step + 1) / steps  # factor de interpolación
+    # Animación con parámetros adaptativos y curva ease-out
+    for step in range(adaptive_steps):
+        t = (step + 1) / adaptive_steps
+        t = 1 - (1 - t)**3  # Suavizado con curva ease-out
+        
         new_center_x = current_center_x * (1 - t) + target_center_x * t
         new_center_y = current_center_y * (1 - t) + target_center_y * t
         new_width = current_width * (1 - t) + target_width * t
         new_height = current_height * (1 - t) + target_height * t
-
-        xmin = new_center_x - new_width / 2.0
-        xmax = new_center_x + new_width / 2.0
-        ymin = new_center_y - new_height / 2.0
-        ymax = new_center_y + new_height / 2.0
-
+        
+        xmin = new_center_x - new_width / 2
+        xmax = new_center_x + new_width / 2
+        ymin = new_center_y - new_height / 2
+        ymax = new_center_y + new_height / 2
+        
         actualizar_fractal(low_res=True)
-        plt.pause(delay)
+        plt.pause(adaptive_delay)
+    
     actualizar_fractal(low_res=False)
     is_animating = False
 
@@ -131,52 +143,39 @@ def update_slider(val):
 slider_iter.on_changed(update_slider)
 
 # ---------------------------------------------------------------------
-# Botones para experimentación (ubicados en la parte derecha)
-# Cada botón reinicia la vista y luego realiza una animación suave hacia el rango deseado.
+# Botones para experimentación (se muestran únicamente los rangos)
 # ---------------------------------------------------------------------
 ax_exp1 = plt.axes([0.76, 0.75, 0.20, 0.05])
-button_exp1 = Button(ax_exp1, 'Exp 1')
+button_exp1 = Button(ax_exp1, '[-2.25, 1.25,\n-1.5, 1.5]')
 
 ax_exp2 = plt.axes([0.76, 0.68, 0.20, 0.05])
-button_exp2 = Button(ax_exp2, 'Exp 2')
+button_exp2 = Button(ax_exp2, '[-1.943, -1.94,\n-0.0012, 0.0012]')
 
 ax_exp3 = plt.axes([0.76, 0.61, 0.20, 0.05])
-button_exp3 = Button(ax_exp3, 'Exp 3')
+button_exp3 = Button(ax_exp3, '[-1.764, -1.7527,\n-0.01925, -0.0109]')
 
 ax_exp4 = plt.axes([0.76, 0.54, 0.20, 0.05])
-button_exp4 = Button(ax_exp4, 'Exp 4')
+button_exp4 = Button(ax_exp4, '[-1.768562608, -1.7685626045,\n-0.000790008, -0.000790005]')
 
 def experiment1(event):
-    global xmin, xmax, ymin, ymax
-    if is_animating:
+    if is_animating: 
         return
-    xmin, xmax, ymin, ymax = original_bounds
-    actualizar_fractal(low_res=False)
-    animate_zoom_to(-2.25, 1.25, -1.5, 1.5)
+    animate_zoom_to(-2.25, 1.25, -1.5, 1.5)  # Zoom amplio con menos detalle
 
 def experiment2(event):
-    global xmin, xmax, ymin, ymax
-    if is_animating:
+    if is_animating: 
         return
-    xmin, xmax, ymin, ymax = original_bounds
-    actualizar_fractal(low_res=False)
-    animate_zoom_to(-1.943, -1.94, -0.0012, 0.0012)
+    animate_zoom_to(-1.943, -1.94, -0.0012, 0.0012)  # Zoom medio
 
 def experiment3(event):
-    global xmin, xmax, ymin, ymax
-    if is_animating:
+    if is_animating: 
         return
-    xmin, xmax, ymin, ymax = original_bounds
-    actualizar_fractal(low_res=False)
-    animate_zoom_to(-1.764, -1.7527, -0.01925, -0.0109)
+    animate_zoom_to(-1.764, -1.7527, -0.01925, -0.0109)  # Zoom más cercano
 
 def experiment4(event):
-    global xmin, xmax, ymin, ymax
-    if is_animating:
+    if is_animating: 
         return
-    xmin, xmax, ymin, ymax = original_bounds
-    actualizar_fractal(low_res=False)
-    animate_zoom_to(-1.768562608, -1.7685626045, -0.000790008, -0.000790005)
+    animate_zoom_to(-1.768562608, -1.7685626045, -0.000790008, -0.000790005)  # Zoom ultra-detalle
 
 button_exp1.on_clicked(experiment1)
 button_exp2.on_clicked(experiment2)
@@ -187,6 +186,7 @@ button_exp4.on_clicked(experiment4)
 # Interactividad: panning, zoom y undo con el teclado
 # ---------------------------------------------------------------------
 zoom_stack = []
+pan_start = None  # Declaración global inicial para el panning
 
 def on_key(event):
     global xmin, xmax, ymin, ymax, zoom_stack, is_animating
@@ -194,21 +194,30 @@ def on_key(event):
         return
     dx = (xmax - xmin) * 0.05
     dy = (ymax - ymin) * 0.05
+
     if event.key == 'left':
-        xmin -= dx; xmax -= dx; actualizar_fractal()
+        xmin -= dx
+        xmax -= dx
+        actualizar_fractal()
     elif event.key == 'right':
-        xmin += dx; xmax += dx; actualizar_fractal()
+        xmin += dx
+        xmax += dx
+        actualizar_fractal()
     elif event.key == 'up':
-        ymin += dy; ymax += dy; actualizar_fractal()
+        ymin += dy
+        ymax += dy
+        actualizar_fractal()
     elif event.key == 'down':
-        ymin -= dy; ymax -= dy; actualizar_fractal()
+        ymin -= dy
+        ymax -= dy
+        actualizar_fractal()
     elif event.key == 'z':
         is_animating = True
         zoom_stack.append((xmin, xmax, ymin, ymax))
         cx = (xmin + xmax) / 2
         cy = (ymin + ymax) / 2
         target_scale = 0.9
-        steps = 20
+        steps = 10
         init_width = xmax - xmin
         init_height = ymax - ymin
         for step in range(steps):
@@ -218,13 +227,13 @@ def on_key(event):
             ymin = cy - (init_height * factor) / 2
             ymax = cy + (init_height * factor) / 2
             actualizar_fractal(low_res=True)
-            plt.pause(0.01)
+            plt.pause(0.005)
         actualizar_fractal(low_res=False)
         is_animating = False
     elif event.key == 'u' and zoom_stack:
         is_animating = True
         target = zoom_stack.pop()
-        steps = 20
+        steps = 10
         cur_xmin, cur_xmax, cur_ymin, cur_ymax = xmin, xmax, ymin, ymax
         for step in range(steps):
             t = (step + 1) / steps
@@ -233,17 +242,11 @@ def on_key(event):
             ymin = cur_ymin * (1 - t) + target[2] * t
             ymax = cur_ymax * (1 - t) + target[3] * t
             actualizar_fractal(low_res=True)
-            plt.pause(0.01)
+            plt.pause(0.005)
         actualizar_fractal(low_res=False)
         is_animating = False
     else:
         actualizar_fractal()
-
-# ---------------------------------------------------------------------
-# Interactividad: panning con el mouse (arrastrar)
-# Se ignoran interacciones mientras se anima.
-# ---------------------------------------------------------------------
-pan_start = None
 
 def on_press(event):
     global pan_start
@@ -261,7 +264,6 @@ def on_motion(event):
     if pan_start and event.inaxes == ax:
         dx = event.xdata - pan_start[0]
         dy = event.ydata - pan_start[1]
-        # Se actualizan los límites de forma inversa al movimiento.
         xmin -= dx
         xmax -= dx
         ymin -= dy
