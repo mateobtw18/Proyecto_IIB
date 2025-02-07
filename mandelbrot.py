@@ -108,32 +108,39 @@ def animate_zoom_to(new_xmin, new_xmax, new_ymin, new_ymax, steps=10, delay=0.00
     # Guarda el estado actual para permitir 'undo'
     zoom_stack.append((xmin, xmax, ymin, ymax))
 
-    # Animación con parámetros adaptativos y curva ease-out
-    for step in range(adaptive_steps):
-        t = (step + 1) / adaptive_steps
-        t = 1 - (1 - t)**3  # Suavizado con curva ease-out
+    try:
+        # Animación con parámetros adaptativos y curva ease-out
+        for step in range(adaptive_steps):
+            t = (step + 1) / adaptive_steps
+            t = 1 - (1 - t)**3  # Suavizado con curva ease-out
+            
+            new_center_x = current_center_x * (1 - t) + target_center_x * t
+            new_center_y = current_center_y * (1 - t) + target_center_y * t
+            new_width = current_width * (1 - t) + target_width * t
+            new_height = current_height * (1 - t) + target_height * t
+            
+            xmin = new_center_x - new_width / 2
+            xmax = new_center_x + new_width / 2
+            ymin = new_center_y - new_height / 2
+            ymax = new_center_y + new_height / 2
+            
+            actualizar_fractal(low_res=True)
+            try:
+                plt.pause(adaptive_delay)
+            except KeyboardInterrupt:
+                break  # Si se interrumpe, salir del bucle de animación
         
-        new_center_x = current_center_x * (1 - t) + target_center_x * t
-        new_center_y = current_center_y * (1 - t) + target_center_y * t
-        new_width = current_width * (1 - t) + target_width * t
-        new_height = current_height * (1 - t) + target_height * t
-        
-        xmin = new_center_x - new_width / 2
-        xmax = new_center_x + new_width / 2
-        ymin = new_center_y - new_height / 2
-        ymax = new_center_y + new_height / 2
-        
-        actualizar_fractal(low_res=True)
-        plt.pause(adaptive_delay)
-    
-    actualizar_fractal(low_res=False)
-    is_animating = False
+        actualizar_fractal(low_res=False)
+    except Exception as e:
+        print(f"Error durante la animación: {e}")
+    finally:
+        is_animating = False
 
 # ---------------------------------------------------------------------
 # Slider para ajustar el número máximo de iteraciones
 # ---------------------------------------------------------------------
 ax_iter = plt.axes([0.1, 0.05, 0.55, 0.03])
-slider_iter = Slider(ax_iter, 'Max Iter', 100, 5000, valinit=max_iter, valstep=100)
+slider_iter = Slider(ax_iter, 'Max Iter', 100, 3000, valinit=max_iter, valstep=100)
 
 def update_slider(val):
     global max_iter
@@ -227,7 +234,10 @@ def on_key(event):
             ymin = cy - (init_height * factor) / 2
             ymax = cy + (init_height * factor) / 2
             actualizar_fractal(low_res=True)
-            plt.pause(0.005)
+            try:
+                plt.pause(0.005)
+            except KeyboardInterrupt:
+                break
         actualizar_fractal(low_res=False)
         is_animating = False
     elif event.key == 'u' and zoom_stack:
@@ -242,7 +252,10 @@ def on_key(event):
             ymin = cur_ymin * (1 - t) + target[2] * t
             ymax = cur_ymax * (1 - t) + target[3] * t
             actualizar_fractal(low_res=True)
-            plt.pause(0.005)
+            try:
+                plt.pause(0.005)
+            except KeyboardInterrupt:
+                break
         actualizar_fractal(low_res=False)
         is_animating = False
     else:
