@@ -8,7 +8,4 @@
 - Botones con nombres a zonas interesantes del fractal 
 
 # Qué falta
-- Revisar el funcionamiento de *actualizar_fractal*
 - Barra de colores según el número de iteraciones
-- Zoom out o Un-zoom
-
