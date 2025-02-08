@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 from numba import jit, prange
-import time
 
 
 # ---------------------------------------------------------------------
@@ -66,7 +65,7 @@ mandelbrot_img = generar_mandelbrot(xmin, xmax, ymin, ymax, ancho, alto, max_ite
 im = ax.imshow(
     mandelbrot_img,
     extent=(xmin, xmax, ymin, ymax),
-    cmap="turbo",
+    cmap="hotaas",
     interpolation="bilinear",
 )
 # fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
