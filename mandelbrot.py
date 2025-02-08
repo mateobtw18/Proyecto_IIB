@@ -95,9 +95,7 @@ def cubic_ease(t):
     return 1 - (1 - t) ** 3
 
 # ---------------------------------------------------------------------
-# Función que realiza la animación del zoom sin recursión.
-# Se utiliza un bucle while para encadenar transiciones. Si se pulsa otra tecla,
-# se activa la bandera de cancelación.
+# Función de animación “estática” (original)
 # ---------------------------------------------------------------------
 def animate_zoom_sequence(target_bounds, steps=60, delay=0.01):
     global xmin, xmax, ymin, ymax, pending_target, animating, cancel_animation
@@ -125,12 +123,85 @@ def animate_zoom_sequence(target_bounds, steps=60, delay=0.01):
         current_target = pending_target
     animating = False
 
-def start_animation(target_bounds, steps=60, delay=0.01):
+# ---------------------------------------------------------------------
+# Función de animación dinámica (panning + zoom) en función de la distancia
+# ---------------------------------------------------------------------
+def animate_zoom_dynamic(target_bounds, total_steps=120, delay=0.005):
+    """
+    Realiza una animación que primero traslada (panning) el centro de la vista
+    hasta el centro de la región objetivo (si la diferencia es significativa)
+    y luego realiza el zoom hasta llegar a target_bounds.
+    """
+    global xmin, xmax, ymin, ymax, cancel_animation
+
+    # Centro actual y centro objetivo
+    current_center = ((xmin + xmax) / 2, (ymin + ymax) / 2)
+    target_center = ((target_bounds[0] + target_bounds[1]) / 2,
+                     (target_bounds[2] + target_bounds[3]) / 2)
+    
+    # Distancia entre centros y ancho actual (para definir un umbral)
+    dx = target_center[0] - current_center[0]
+    dy = target_center[1] - current_center[1]
+    distance = np.hypot(dx, dy)
+    current_width = xmax - xmin
+
+    # Si la diferencia de centros es mayor que un cierto porcentaje del ancho actual,
+    # se realiza primero una animación de panning.
+    pan_threshold = current_width * 0.2  # umbral: 20% del ancho actual
+    if distance > pan_threshold:
+        # Se asignan un número de pasos para panning y zoom (se pueden ajustar)
+        pan_steps = int(total_steps * 0.5)
+        zoom_steps = total_steps - pan_steps
+
+        # Etapa de panning: se interpola el centro sin cambiar el zoom actual.
+        start_center = current_center
+        for step in range(pan_steps):
+            if cancel_animation:
+                cancel_animation = False
+                return
+            t = cubic_ease((step + 1) / pan_steps)
+            new_center_x = start_center[0] + dx * t
+            new_center_y = start_center[1] + dy * t
+            # Se mantiene el tamaño actual de la ventana
+            half_width = current_width / 2
+            half_height = (ymax - ymin) / 2
+            xmin_new = new_center_x - half_width
+            xmax_new = new_center_x + half_width
+            ymin_new = new_center_y - half_height
+            ymax_new = new_center_y + half_height
+            xmin, xmax, ymin, ymax = xmin_new, xmax_new, ymin_new, ymax_new
+            actualizar_fractal(low_res=True)
+            plt.pause(delay)
+
+        # Etapa de zoom: se interpola desde la ventana actual hasta target_bounds.
+        start_bounds = (xmin, xmax, ymin, ymax)
+        for step in range(zoom_steps):
+            if cancel_animation:
+                cancel_animation = False
+                return
+            t = cubic_ease((step + 1) / zoom_steps)
+            xmin_new = start_bounds[0] * (1 - t) + target_bounds[0] * t
+            xmax_new = start_bounds[1] * (1 - t) + target_bounds[1] * t
+            ymin_new = start_bounds[2] * (1 - t) + target_bounds[2] * t
+            ymax_new = start_bounds[3] * (1 - t) + target_bounds[3] * t
+            xmin, xmax, ymin, ymax = xmin_new, xmax_new, ymin_new, ymax_new
+            actualizar_fractal(low_res=True)
+            plt.pause(delay)
+        actualizar_fractal(low_res=False)
+    else:
+        # Si la diferencia es pequeña, se usa la animación estándar.
+        animate_zoom_sequence(target_bounds, steps=total_steps, delay=delay)
+# ---------------------------------------------------------------------
+# Función para iniciar la animación dinámica (usa animate_zoom_dynamic)
+# ---------------------------------------------------------------------
+def start_animation_dynamic(target_bounds, steps=60, delay=0.01):
     global animating, pending_target
     if animating:
         pending_target = target_bounds
     else:
-        animate_zoom_sequence(target_bounds, steps, delay)
+        animating = True
+        animate_zoom_dynamic(target_bounds, total_steps=steps, delay=delay)
+        animating = False
 
 # ---------------------------------------------------------------------
 # Función para realizar zoom (in o out) según un factor.
@@ -146,7 +217,7 @@ def zoom(factor, steps=20, delay=0.01):
     target_height = current_height * factor
     target_bounds = (cx - target_width / 2, cx + target_width / 2,
                      cy - target_height / 2, cy + target_height / 2)
-    start_animation(target_bounds, steps, delay)
+    start_animation_dynamic(target_bounds, steps, delay)
 
 # ---------------------------------------------------------------------
 # Eventos de teclado:
@@ -221,7 +292,8 @@ for spec in button_specs:
     label, bounds = spec
     ax_button = plt.axes([0.82, 0.75 - button_specs.index(spec) * 0.07, 0.15, 0.05])
     btn = Button(ax_button, label)
-    btn.on_clicked(lambda event, b=bounds: start_animation(b, steps=60, delay=0.01))
+    # Se usa start_animation_dynamic en lugar de start_animation
+    btn.on_clicked(lambda event, b=bounds: start_animation_dynamic(b, steps=60, delay=0.01))
     buttons.append(btn)
 
 # ---------------------------------------------------------------------
