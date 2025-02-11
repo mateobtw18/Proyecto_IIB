@@ -1,348 +1,389 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button
+from matplotlib.widgets import Button, Slider
 from numba import jit, prange
 
 
 # ---------------------------------------------------------------------
-# Cálculo del Mandelbrot con Numba
+# Cálculo del Mandelbrot con Numba (usando float64 por defecto)
 # ---------------------------------------------------------------------
-
-
 @jit(nopython=True)
-def mandelbrot(c, max_iter):
+def mandelbrot(complejo, iter_max):
     z = 0j
-    for n in range(max_iter):
-        z = z * z + c
-        if z.real * z.real + z.imag * z.imag > 4.0:
-            return n
-    return max_iter
+    for i in range(iter_max):
+        z = z * z + complejo
+        if (z.real * z.real + z.imag * z.imag) > 4.0:
+            return i
+    return iter_max
 
 
 @jit(nopython=True, parallel=True)
-def generar_mandelbrot(xmin, xmax, ymin, ymax, resolucion_x, resolucion_y, max_iter):
-    xs = np.linspace(xmin, xmax, resolucion_x)
-    ys = np.linspace(ymin, ymax, resolucion_y)
-    imagen = np.empty((resolucion_y, resolucion_x), dtype=np.int32)
-
-    for i in prange(resolucion_y):  # Paralelización en la dimensión y
-        y = ys[i]  # Evitar acceder al array dentro del bucle anidado
-        for j in range(resolucion_x):
-            x = xs[j]  # Evitar accesos innecesarios al array
-            imagen[i, j] = mandelbrot(complex(x, y), max_iter)
-
+def generar_mandelbrot(x_min, x_max, y_min, y_max, res_x, res_y, iter_max):
+    xs = np.linspace(x_min, x_max, res_x)
+    ys = np.linspace(y_min, y_max, res_y)
+    imagen = np.empty((res_y, res_x), dtype=np.int32)
+    for i in prange(res_y):
+        y = ys[i]
+        for j in range(res_x):
+            x = xs[j]
+            imagen[i, j] = mandelbrot(complex(x, y), iter_max)
     return imagen
 
 
 # ---------------------------------------------------------------------
-# Parámetros globales iniciales y límites originales del fractal
+# Parámetros globales (usando np.float64 para máxima precisión)
 # ---------------------------------------------------------------------
-original_bounds = (-2.0, 1.0, -1.5, 1.5)
-xmin, xmax, ymin, ymax = original_bounds
-ancho, alto = 800, 800
-max_iter = 1000  # Valor inicial de iteraciones
-is_animating = False
-
-# ---------------------------------------------------------------------
-# Precompilación de las funciones numba (llamada dummy)
-# ---------------------------------------------------------------------
-_ = generar_mandelbrot(xmin, xmax, ymin, ymax, 10, 10, max_iter)
-
-# ---------------------------------------------------------------------
-# Creación de la figura y definición de área para el fractal y controles
-# ---------------------------------------------------------------------
-fig, ax = plt.subplots(figsize=(10, 8))
-plt.subplots_adjust(left=0.1, right=0.73, bottom=0.15, top=0.95)
-ax.set_title("Conjunto de Mandelbrot")
-# plt.colorbar()
-# Agregar barra de colores
-# cbar.set_label("Número de Iteraciones")
-
-ax.set_xlabel("Re(c)")
-ax.set_ylabel("Im(c)")
-
-mandelbrot_img = generar_mandelbrot(xmin, xmax, ymin, ymax, ancho, alto, max_iter)
-im = ax.imshow(
-    mandelbrot_img,
-    extent=(xmin, xmax, ymin, ymax),
-    cmap="hotaas",
-    interpolation="bilinear",
+limites_originales = (
+    np.float64(-2.25),
+    np.float64(1.25),
+    np.float64(-1.5),
+    np.float64(1.5),
 )
-# fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+x_min, x_max, y_min, y_max = limites_originales
+ancho, alto = 800, 800
+iter_max = 1000  # Valor inicial; se puede modificar con el slider
+
+# Precompilamos en baja resolución
+# _ = generar_mandelbrot(x_min, x_max, y_min, y_max, 10, 10, iter_max)
+
+# Variables de control de la animación
+animando = False
+objetivo_pendiente = (
+    None  # Almacena el siguiente objetivo si se pulsa durante una animación
+)
+cancelar_animacion = False  # Se activa para cancelar la animación actual (por panning)
+
+# ---------------------------------------------------------------------
+# Configuración de la figura y el eje
+# ---------------------------------------------------------------------
+figura, eje = plt.subplots(figsize=(14, 8))
+plt.subplots_adjust(left=0.1, right=0.78, bottom=0.12, top=0.95)
+eje.set_title("Conjunto de Mandelbrot")
+eje.set_xlabel("Re(c)")
+eje.set_ylabel("Im(c)")
+
+imagen_mandelbrot = generar_mandelbrot(
+    x_min, x_max, y_min, y_max, ancho, alto, iter_max
+)
+imagen_objeto = eje.imshow(
+    imagen_mandelbrot,
+    extent=(x_min, x_max, y_min, y_max),
+    cmap="turbo",
+    interpolation="nearest",
+)
+eje.set_autoscale_on(False)
+cbar = figura.colorbar(imagen_objeto, ax=eje, fraction=0.046, pad=0.04)
+# cbar.set_label("Número de Iteraciones")
+
+
+# ---------------------------------------------------------------------
+# Función auxiliar: corrige los límites de la vista para evitar zooms extremos
+# ---------------------------------------------------------------------
+def corregir_limites_vista():
+    global x_min, x_max, y_min, y_max
+    rango_minimo = np.float64(1e-14)
+    if (x_max - x_min) < rango_minimo:
+        cx = (x_min + x_max) / 2
+        x_min = cx - rango_minimo / 2
+        x_max = cx + rango_minimo / 2
+    if (y_max - y_min) < rango_minimo:
+        cy = (y_min + y_max) / 2
+        y_min = cy - rango_minimo / 2
+        y_max = cy + rango_minimo / 2
 
 
 # ---------------------------------------------------------------------
 # Función para actualizar la imagen del fractal
-# low_res=True: baja resolución para la animación (más fluida)
-# low_res=False: alta resolución para la imagen final
 # ---------------------------------------------------------------------
-def actualizar_fractal(low_res=True):
-    global im, xmin, xmax, ymin, ymax, ancho, alto, max_iter
-
-    resolucion_x, resolucion_y = (100, 100) if low_res else (ancho, alto)
-
+def actualizar_fractal(baja_resolucion=True):
+    global imagen_objeto, x_min, x_max, y_min, y_max
+    corregir_limites_vista()
+    resolucion = (100, 100) if baja_resolucion else (ancho, alto)
     imagen = generar_mandelbrot(
-        xmin, xmax, ymin, ymax, resolucion_x, resolucion_y, max_iter
+        x_min, x_max, y_min, y_max, resolucion[0], resolucion[1], iter_max
     )
-    im.set_data(imagen)
-    im.set_extent((xmin, xmax, ymin, ymax))
-    ax.set_title("Conjunto de Mandelbrot")
-    fig.canvas.draw_idle()
-    fig.canvas.flush_events()
+    imagen_objeto.set_data(imagen)
+    imagen_objeto.set_extent((x_min, x_max, y_min, y_max))
+    imagen_objeto.set_clim(vmin=0, vmax=iter_max)
+    eje.set_xlim(x_min, x_max)
+    eje.set_ylim(y_min, y_max)
+    figura.canvas.draw_idle()
 
 
 # ---------------------------------------------------------------------
-# Función de animación mejorada con zoom adaptativo
+# Función de easing (suavizado cúbico)
 # ---------------------------------------------------------------------
-def animate_zoom_to(new_xmin, new_xmax, new_ymin, new_ymax, steps=10, delay=0.01):
-    global xmin, xmax, ymin, ymax, is_animating
-    is_animating = True
-
-    # Valores objetivo para interpolación
-    target_center_x = (new_xmin + new_xmax) / 2
-    target_center_y = (new_ymin + new_ymax) / 2
-    target_width = new_xmax - new_xmin
-    target_height = new_ymax - new_ymin
-
-    # Valores iniciales
-    current_center_x = (xmin + xmax) / 2
-    current_center_y = (ymin + ymax) / 2
-    current_width = xmax - xmin
-    current_height = ymax - ymin
-
-    try:
-        # Animación con parámetros adaptativos y curva ease-out
-        for step in range(steps):
-            t = (step + 1) / steps
-            t = 1 - (1 - t) ** 3  # Suavizado con curva ease-out
-
-            new_center_x = current_center_x * (1 - t) + target_center_x * t
-            new_center_y = current_center_y * (1 - t) + target_center_y * t
-            new_width = current_width * (1 - t) + target_width * t
-            new_height = current_height * (1 - t) + target_height * t
-
-            xmin = new_center_x - new_width / 2
-            xmax = new_center_x + new_width / 2
-            ymin = new_center_y - new_height / 2
-            ymax = new_center_y + new_height / 2
-
-            actualizar_fractal(low_res=True)
-            try:
-                plt.pause(delay)
-            except KeyboardInterrupt:
-                break  # Si se interrumpe, salir del bucle de animación
-
-        actualizar_fractal(low_res=False)
-    except Exception as e:
-        print(f"Error durante la animación: {e}")
-    finally:
-        is_animating = False
+def suavizado_cubico(t):
+    return 1 - (1 - t) ** 3
 
 
 # ---------------------------------------------------------------------
-# Slider para ajustar el número máximo de iteraciones
+# Función de animación “estática”
 # ---------------------------------------------------------------------
-ax_iter = plt.axes([0.1, 0.05, 0.55, 0.03])
-slider_iter = Slider(ax_iter, "Max Iter", 10, 5000, valinit=max_iter, valstep=10)
-
-
-def update_slider(val):
-    global max_iter
-    max_iter = int(slider_iter.val)
-    # fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    actualizar_fractal(low_res=False)
-
-
-slider_iter.on_changed(update_slider)
-
-# ---------------------------------------------------------------------
-# Botones para experimentación (se muestran únicamente los rangos)
-# ---------------------------------------------------------------------
-ax_exp1 = plt.axes([0.76, 0.75, 0.20, 0.05])
-button_exp1 = Button(ax_exp1, "Mandelbrot Original")
-
-ax_exp2 = plt.axes([0.76, 0.68, 0.20, 0.05])
-button_exp2 = Button(ax_exp2, "Minibrot")
-
-ax_exp3 = plt.axes([0.76, 0.61, 0.20, 0.05])
-button_exp3 = Button(ax_exp3, "Bulb")
-
-ax_exp4 = plt.axes([0.76, 0.54, 0.20, 0.05])
-button_exp4 = Button(ax_exp4, "Tentáculo")
-
-ax_exp5 = plt.axes([0.76, 0.47, 0.20, 0.05])
-button_exp5 = Button(ax_exp5, "Conjunto de Julia")
-
-
-def experiment1(event):
-    if is_animating:
-        return
-    animate_zoom_to(-2.25, 1.25, -1.5, 1.5, steps=40)  # Zoom amplio con menos detalle
-
-
-def experiment2(event):
-    if is_animating:
-        return
-    animate_zoom_to(-1.943, -1.94, -0.0012, 0.0012, steps=40)  # Zoom medio
-
-
-def experiment3(event):
-    if is_animating:
-        return
-    animate_zoom_to(-1.764, -1.7527, -0.01925, -0.0109, steps=50)  # Zoom más cercano
-
-
-def experiment4(event):
-    if is_animating:
-        return
-    animate_zoom_to(
-        -1.768562608, -1.7685626045, -0.000790008, -0.000790005, steps=70
-    )  # Zoom ultra-detalle
-
-
-def experiment5(event):
-    if is_animating:
-        return
-    animate_zoom_to(
-        -1.7687793, -1.76877842, -0.0017391, -0.00173871, steps=60
-    )  # Zoom Julia
-
-
-button_exp1.on_clicked(experiment1)
-button_exp2.on_clicked(experiment2)
-button_exp3.on_clicked(experiment3)
-button_exp4.on_clicked(experiment4)
-button_exp5.on_clicked(experiment5)
-
-# ---------------------------------------------------------------------
-# Interactividad: panning, zoom y undo con el teclado
-# ---------------------------------------------------------------------
-zoom_stack = []
-pan_start = None  # Declaración global inicial para el panning
-
-
-def on_key(event):
-    global xmin, xmax, ymin, ymax, zoom_stack, is_animating
-    if is_animating:
-        return
-
-    dx = (xmax - xmin) * 0.05
-    dy = (ymax - ymin) * 0.05
-
-    if event.key == "left":
-        xmin -= dx
-        xmax -= dx
-        actualizar_fractal(low_res=True)  # 🔹 Baja resolución para fluidez
-        fig.canvas.flush_events()
-        plt.pause(0.01)  # 🔹 Pausa pequeña antes de restaurar calidad
-        actualizar_fractal(low_res=False)
-    elif event.key == "right":
-        xmin += dx
-        xmax += dx
-        actualizar_fractal(low_res=True)  # 🔹 Baja resolución para fluidez
-        fig.canvas.flush_events()
-        plt.pause(0.01)  # 🔹 Pausa pequeña antes de restaurar calidad
-        actualizar_fractal(low_res=False)
-    elif event.key == "down":
-        ymin += dy
-        ymax += dy
-        actualizar_fractal(low_res=True)  # 🔹 Baja resolución para fluidez
-        fig.canvas.flush_events()
-        plt.pause(0.01)  # 🔹 Pausa pequeña antes de restaurar calidad
-        actualizar_fractal(low_res=False)
-    elif event.key == "up":
-        ymin -= dy
-        ymax -= dy
-        actualizar_fractal(low_res=True)  # 🔹 Baja resolución para fluidez
-        fig.canvas.flush_events()
-        plt.pause(0.01)  # 🔹 Pausa pequeña antes de restaurar calidad
-        actualizar_fractal(low_res=False)
-
-    if event.key == "z":
-        is_animating = True
-        zoom_stack.append((xmin, xmax, ymin, ymax))  # Agrega el estado actual a la pila
-        cx = (xmin + xmax) / 2
-        cy = (ymin + ymax) / 2
-        target_scale = 0.75
-        steps = 10
-        init_width = xmax - xmin
-        init_height = ymax - ymin
-        for step in range(steps):
-            factor = 1 - (1 - target_scale) * ((step + 1) / steps)
-            xmin = cx - (init_width * factor) / 2
-            xmax = cx + (init_width * factor) / 2
-            ymin = cy - (init_height * factor) / 2
-            ymax = cy + (init_height * factor) / 2
-            actualizar_fractal(low_res=True)
-            try:
-                plt.pause(0.01)
-            except KeyboardInterrupt:
+def animar_secuencia_zoom(limites_objetivo, pasos=60, retardo=0.01):
+    global x_min, x_max, y_min, y_max, objetivo_pendiente, animando, cancelar_animacion
+    animando = True
+    objetivo_actual = limites_objetivo
+    while objetivo_actual is not None:
+        objetivo_pendiente = None
+        limites_inicio = (x_min, x_max, y_min, y_max)
+        for paso in range(pasos):
+            if cancelar_animacion:
+                cancelar_animacion = False
+                animando = False
+                return
+            t = suavizado_cubico((paso + 1) / pasos)
+            nuevo_x_min = limites_inicio[0] * (1 - t) + objetivo_actual[0] * t
+            nuevo_x_max = limites_inicio[1] * (1 - t) + objetivo_actual[1] * t
+            nuevo_y_min = limites_inicio[2] * (1 - t) + objetivo_actual[2] * t
+            nuevo_y_max = limites_inicio[3] * (1 - t) + objetivo_actual[3] * t
+            x_min, x_max, y_min, y_max = (
+                nuevo_x_min,
+                nuevo_x_max,
+                nuevo_y_min,
+                nuevo_y_max,
+            )
+            actualizar_fractal(baja_resolucion=True)
+            plt.pause(retardo)
+            if objetivo_pendiente is not None:
                 break
-        actualizar_fractal(low_res=False)
-        is_animating = False
+        actualizar_fractal(baja_resolucion=False)
+        objetivo_actual = objetivo_pendiente
+    animando = False
 
-    elif event.key == "x" and zoom_stack:
-        is_animating = True
-        target = zoom_stack.pop()  # Deshace el último zoom manual
-        steps = 10
-        cur_xmin, cur_xmax, cur_ymin, cur_ymax = xmin, xmax, ymin, ymax
-        for step in range(steps):
-            t = (step + 1) / steps
-            xmin = cur_xmin * (1 - t) + target[0] * t
-            xmax = cur_xmax * (1 - t) + target[1] * t
-            ymin = cur_ymin * (1 - t) + target[2] * t
-            ymax = cur_ymax * (1 - t) + target[3] * t
-            actualizar_fractal(low_res=True)
-            try:
-                plt.pause(0.01)
-            except KeyboardInterrupt:
-                break
-        actualizar_fractal(low_res=False)
-        is_animating = False
+
+# ---------------------------------------------------------------------
+# Función de animación dinámica (panning + zoom) en función de la distancia
+# ---------------------------------------------------------------------
+def animar_zoom_dinamico(limites_objetivo, pasos_totales=120, retardo=0.005):
+    """
+    Realiza una animación que primero traslada (panning) el centro de la vista
+    hasta el centro de la región objetivo (si la diferencia es significativa)
+    y luego realiza el zoom hasta llegar a 'limites_objetivo'.
+    """
+    global x_min, x_max, y_min, y_max, cancelar_animacion
+
+    # Centro actual y centro objetivo
+    centro_actual = ((x_min + x_max) / 2, (y_min + y_max) / 2)
+    centro_objetivo = (
+        (limites_objetivo[0] + limites_objetivo[1]) / 2,
+        (limites_objetivo[2] + limites_objetivo[3]) / 2,
+    )
+
+    # Distancia entre centros y ancho actual (para definir un umbral)
+    dx = centro_objetivo[0] - centro_actual[0]
+    dy = centro_objetivo[1] - centro_actual[1]
+    distancia = np.hypot(dx, dy)
+    ancho_actual = x_max - x_min
+
+    # Si la diferencia de centros es mayor que un cierto porcentaje del ancho actual,
+    # se realiza primero una animación de panning.
+    umbral_pan = ancho_actual * 0.2  # 20% del ancho actual
+    if distancia > umbral_pan:
+        # Se asignan un número de pasos para panning y zoom (se pueden ajustar)
+        pasos_pan = int(pasos_totales * 0.5)
+        pasos_zoom = pasos_totales - pasos_pan
+
+        # Etapa de panning: se interpola el centro sin cambiar el zoom actual.
+        centro_inicio = centro_actual
+        for paso in range(pasos_pan):
+            if cancelar_animacion:
+                cancelar_animacion = False
+                return
+            t = suavizado_cubico((paso + 1) / pasos_pan)
+            nuevo_centro_x = centro_inicio[0] + dx * t
+            nuevo_centro_y = centro_inicio[1] + dy * t
+            # Se mantiene el tamaño actual de la ventana
+            mitad_ancho = ancho_actual / 2
+            mitad_alto = (y_max - y_min) / 2
+            nuevo_x_min = nuevo_centro_x - mitad_ancho
+            nuevo_x_max = nuevo_centro_x + mitad_ancho
+            nuevo_y_min = nuevo_centro_y - mitad_alto
+            nuevo_y_max = nuevo_centro_y + mitad_alto
+            x_min, x_max, y_min, y_max = (
+                nuevo_x_min,
+                nuevo_x_max,
+                nuevo_y_min,
+                nuevo_y_max,
+            )
+            actualizar_fractal(baja_resolucion=True)
+            plt.pause(retardo)
+
+        # Etapa de zoom: se interpola desde la ventana actual hasta 'limites_objetivo'.
+        limites_inicio = (x_min, x_max, y_min, y_max)
+        for paso in range(pasos_zoom):
+            if cancelar_animacion:
+                cancelar_animacion = False
+                return
+            t = suavizado_cubico((paso + 1) / pasos_zoom)
+            nuevo_x_min = limites_inicio[0] * (1 - t) + limites_objetivo[0] * t
+            nuevo_x_max = limites_inicio[1] * (1 - t) + limites_objetivo[1] * t
+            nuevo_y_min = limites_inicio[2] * (1 - t) + limites_objetivo[2] * t
+            nuevo_y_max = limites_inicio[3] * (1 - t) + limites_objetivo[3] * t
+            x_min, x_max, y_min, y_max = (
+                nuevo_x_min,
+                nuevo_x_max,
+                nuevo_y_min,
+                nuevo_y_max,
+            )
+            actualizar_fractal(baja_resolucion=True)
+            plt.pause(retardo)
+        actualizar_fractal(baja_resolucion=False)
     else:
-        actualizar_fractal(low_res=False)
-
-
-# slider_iter.on_changed(update_slider)
-
-
-def on_press(event):
-    global pan_start
-    if event.inaxes == ax and not is_animating:
-        pan_start = (event.xdata, event.ydata)
-
-
-def on_release(event):
-    global pan_start
-    pan_start = None
-
-
-def on_motion(event):
-    global pan_start, xmin, xmax, ymin, ymax
-    if is_animating:
-        return
-    if pan_start and event.inaxes == ax:
-        try:
-            dx = event.xdata - pan_start[0]
-            dy = event.ydata - pan_start[1]
-            xmin -= dx
-            xmax -= dx
-            ymin -= dy
-            ymax -= dy
-            pan_start = (event.xdata, event.ydata)
-            actualizar_fractal()
-        except Exception as e:
-            print(f"Error durante el panning: {e}")
-            pan_start = None  # Reinicia el estado de panning
+        # Si la diferencia es pequeña, se usa la animación estática.
+        animar_secuencia_zoom(limites_objetivo, pasos=pasos_totales, retardo=retardo)
 
 
 # ---------------------------------------------------------------------
-# Conexión de eventos
+# Función para iniciar la animación dinámica
 # ---------------------------------------------------------------------
-fig.canvas.mpl_connect("key_press_event", on_key)
-fig.canvas.mpl_connect("button_press_event", on_press)
-fig.canvas.mpl_connect("button_release_event", on_release)
-fig.canvas.mpl_connect("motion_notify_event", on_motion)
+def iniciar_animacion_dinamica(limites_objetivo, pasos=60, retardo=0.01):
+    global animando, objetivo_pendiente
+    if animando:
+        objetivo_pendiente = limites_objetivo
+    else:
+        animando = True
+        animar_zoom_dinamico(limites_objetivo, pasos_totales=pasos, retardo=retardo)
+        animando = False
+
+
+# ---------------------------------------------------------------------
+# Función para realizar zoom (acercar o alejar) según un factor.
+# factor < 1: acercar; factor > 1: alejar.
+# ---------------------------------------------------------------------
+def zoomear(factor, pasos=20, retardo=0.01):
+    global x_min, x_max, y_min, y_max
+    centro_x = (x_min + x_max) / 2
+    centro_y = (y_min + y_max) / 2
+    ancho_actual = x_max - x_min
+    alto_actual = y_max - y_min
+    ancho_objetivo = ancho_actual * factor
+    alto_objetivo = alto_actual * factor
+    limites_objetivo = (
+        centro_x - ancho_objetivo / 2,
+        centro_x + ancho_objetivo / 2,
+        centro_y - alto_objetivo / 2,
+        centro_y + alto_objetivo / 2,
+    )
+    iniciar_animacion_dinamica(limites_objetivo, pasos, retardo)
+
+
+# ---------------------------------------------------------------------
+# Eventos de teclado:
+# - "z": acercar
+# - "x": alejar
+# - Flechas: panning (mover la vista en 2D)
+# Al pulsar una flecha se cancela la animación en curso.
+# ---------------------------------------------------------------------
+def evento_teclado(event):
+    global x_min, x_max, y_min, y_max, cancelar_animacion
+    if event.key == "z":
+        zoomear(0.75)
+    elif event.key == "x":
+        zoomear(1 / 0.75)
+    elif event.key == "left":
+        cancelar_animacion = True
+        dx = (x_max - x_min) * 0.05
+        x_min -= dx
+        x_max -= dx
+        actualizar_fractal(baja_resolucion=False)
+    elif event.key == "right":
+        cancelar_animacion = True
+        dx = (x_max - x_min) * 0.05
+        x_min += dx
+        x_max += dx
+        actualizar_fractal(baja_resolucion=False)
+    elif event.key == "down":
+        cancelar_animacion = True
+        dy = (y_max - y_min) * 0.05
+        y_min += dy
+        y_max += dy
+        actualizar_fractal(baja_resolucion=False)
+    elif event.key == "up":
+        cancelar_animacion = True
+        dy = (y_max - y_min) * 0.05
+        y_min -= dy
+        y_max -= dy
+        actualizar_fractal(baja_resolucion=False)
+
+
+figura.canvas.mpl_connect("key_press_event", evento_teclado)
+
+# ---------------------------------------------------------------------
+# Slider para modificar el número máximo de iteraciones (de 100 a 3000)
+# ---------------------------------------------------------------------
+eje_iter = plt.axes([0.1, 0.01, 0.55, 0.03])
+control_iter = Slider(eje_iter, "Iter Máx", 100, 5000, valinit=iter_max, valstep=10)
+
+
+def actualizar_iter_max(valor):
+    global iter_max
+    iter_max = int(valor)
+    actualizar_fractal(baja_resolucion=False)
+
+
+control_iter.on_changed(actualizar_iter_max)
+
+# ---------------------------------------------------------------------
+# Botones para hacer "big zoom" a regiones predefinidas.
+# Se definen los límites con np.float64 (usando 17 dígitos cuando corresponda)
+# para explorar el fractal en profundidad.
+# ---------------------------------------------------------------------
+especificaciones_botones = [
+    (
+        "Mandelbrot Original",
+        (np.float64(-2.25), np.float64(1.25), np.float64(-1.5), np.float64(1.5)),
+    ),
+    (
+        "Minibrot",
+        (
+            np.float64(-1.943),
+            np.float64(-1.94),
+            np.float64(-0.0012),
+            np.float64(0.0012),
+        ),
+    ),
+    (
+        "Bulb",
+        (
+            np.float64(-1.764),
+            np.float64(-1.7527),
+            np.float64(-0.01925),
+            np.float64(-0.0109),
+        ),
+    ),
+    (
+        "Tentáculo",
+        (
+            np.float64(-1.76856260800000000),
+            np.float64(-1.76856260450000000),
+            np.float64(-0.00079000800000000),
+            np.float64(-0.00079000500000000),
+        ),
+    ),
+    (
+        "Conjunto de Julia",
+        (
+            np.float64(-1.76877930000000000),
+            np.float64(-1.76877842000000000),
+            np.float64(-0.00173910000000000),
+            np.float64(-0.00173871000000000),
+        ),
+    ),
+]
+
+botones = []
+for spec in especificaciones_botones:
+    etiqueta, limites = spec
+    eje_boton = plt.axes(
+        [0.82, 0.75 - especificaciones_botones.index(spec) * 0.07, 0.15, 0.05]
+    )
+    boton = Button(eje_boton, etiqueta)
+    # Se usa iniciar_animacion_dinamica en lugar de la función anterior
+    boton.on_clicked(
+        lambda evento, l=limites: iniciar_animacion_dinamica(l, pasos=60, retardo=0.01)
+    )
+    botones.append(boton)
 
 # ---------------------------------------------------------------------
 # Mostrar la ventana
