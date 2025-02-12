@@ -44,22 +44,30 @@ python Código/mandelbrot.py
 ```
 
 ### 📖 3. Documentación del Proyecto:
-Para verla, simplemente haz clic en el enlace o abre el archivo index.html manualmente en un navegador.
+
+
+La documentación completa está disponible en:
+
+👉 [**Abrir Documentación**](Documentation/build/html/index.html)
+
+Para verla, simplemente haz clic en el enlace o abre el archivo **[index.html](Documentation/build/html/index.html)** manualmente en un navegador.
 
 Si prefieres generarla manualmente, usa:
+
 ```bash
 cd Documentation
 sphinx-build -b html source build
 ```
 
 ### 👥 4. Autores y Contribuyentes
-👤 Autores del proyecto
+
 Este proyecto fue desarrollado por:
 
-🧑‍💻 Vladimirjon
-🧑‍💻 Daniel Flores
-🧑‍💻 Mateo Cumbal
-🧑‍💻 Luis Tipán
+- 🧑‍💻 [Vladimir Jon](https://github.com/Vladimirjon)  
+- 🧑‍💻 [Daniel Flores](https://github.com/danielife05)  
+- 🧑‍💻 [Mateo Cumbal](https://github.com/mateobtw18)  
+- 🧑‍💻 [Luis Tipán](https://github.com/LuisTipan005)
 
-#### 📄 Licencia
+
+### 📄 5. Licencia
 Este proyecto se realizó con fines académicos y se encuentra bajo una licencia libre.
