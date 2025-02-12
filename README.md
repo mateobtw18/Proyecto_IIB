@@ -47,7 +47,7 @@ python Código/mandelbrot.py
 
 La documentación completa del proyecto está disponible en:
 
-👉 [Abrir Documentación](Documentation/build/) 📂
+👉 [Abrir Documentación](Documentation) 📂
 
 Para consultar la documentación, dirígete al enlace anterior y revisa los archivos generados.  
 Si deseas regenerarla manualmente, utiliza el siguiente comando:
