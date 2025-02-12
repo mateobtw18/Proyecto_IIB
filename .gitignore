@@ -1,0 +1,45 @@
+# ===========================
+# ⚡ Gitignore para Python ⚡
+# ===========================
+
+# Archivos y carpetas de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+.venv/
+env/
+venv/
+ENV/
+
+# Archivos de configuración de instalación
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+Pipfile.lock
+
+# Archivos de distribución
+dist/
+# Archivos de caché y pruebas
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# Configuración de VSCode y PyCharm
+.vscode/
+.idea/
+*.code-workspace
+
+# Archivos temporales y logs
+*.log
+logs/
+*.tmp
+*.swp
+.DS_Store
+
+
