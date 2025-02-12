@@ -1,0 +1,523 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="es" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mandelbrot &mdash; documentación de Fractales en el plano complejo - 12/02/2025</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=d2ba7e11"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/translations.js?v=f85f4cfb"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Índice" href="../genindex.html" />
+    <link rel="search" title="Búsqueda" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Fractales en el plano complejo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Buscar documentos" aria-label="Buscar documentos" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contenido:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">Código</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Fractales en el plano complejo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Código de módulo</a></li>
+      <li class="breadcrumb-item active">mandelbrot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Código fuente para mandelbrot</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib.widgets</span> <span class="kn">import</span> <span class="n">Button</span><span class="p">,</span> <span class="n">Slider</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">jit</span><span class="p">,</span> <span class="n">prange</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Cálculo del Mandelbrot con Numba (usando float64 por defecto)</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="mandelbrot">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.mandelbrot">[documentos]</a>
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">mandelbrot</span><span class="p">(</span><span class="n">complejo</span><span class="p">,</span> <span class="n">iter_max</span><span class="p">):</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="mi">0</span><span class="n">j</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iter_max</span><span class="p">):</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span> <span class="o">+</span> <span class="n">complejo</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">z</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="n">z</span><span class="o">.</span><span class="n">imag</span> <span class="o">*</span> <span class="n">z</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">4.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="n">iter_max</span></div>
+
+
+
+<div class="viewcode-block" id="generar_mandelbrot">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.generar_mandelbrot">[documentos]</a>
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">generar_mandelbrot</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="n">res_x</span><span class="p">,</span> <span class="n">res_y</span><span class="p">,</span> <span class="n">iter_max</span><span class="p">):</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">res_x</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="n">res_y</span><span class="p">)</span>
+    <span class="n">imagen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">res_y</span><span class="p">,</span> <span class="n">res_x</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">res_y</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">res_x</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">imagen</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">mandelbrot</span><span class="p">(</span><span class="nb">complex</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">iter_max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">imagen</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Parámetros globales (usando np.float64 para máxima precisión)</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="n">limites_originales</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">2.25</span><span class="p">),</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">1.25</span><span class="p">),</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">),</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">1.5</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">limites_originales</span>
+<span class="n">ancho</span><span class="p">,</span> <span class="n">alto</span> <span class="o">=</span> <span class="mi">800</span><span class="p">,</span> <span class="mi">800</span>
+<span class="n">iter_max</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Valor inicial; se puede modificar con el slider</span>
+
+<span class="c1"># Precompilamos en baja resolución</span>
+<span class="c1"># _ = generar_mandelbrot(x_min, x_max, y_min, y_max, 10, 10, iter_max)</span>
+
+<span class="c1"># Variables de control de la animación</span>
+<span class="n">animando</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">objetivo_pendiente</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="kc">None</span>  <span class="c1"># Almacena el siguiente objetivo si se pulsa durante una animación</span>
+<span class="p">)</span>
+<span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Se activa para cancelar la animación actual (por panning)</span>
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Configuración de la figura y el eje</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="n">figura</span><span class="p">,</span> <span class="n">eje</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mf">0.78</span><span class="p">,</span> <span class="n">bottom</span><span class="o">=</span><span class="mf">0.12</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+<span class="n">eje</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Conjunto de Mandelbrot&quot;</span><span class="p">)</span>
+<span class="n">eje</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Re(c)&quot;</span><span class="p">)</span>
+<span class="n">eje</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Im(c)&quot;</span><span class="p">)</span>
+
+<span class="n">imagen_mandelbrot</span> <span class="o">=</span> <span class="n">generar_mandelbrot</span><span class="p">(</span>
+    <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="n">ancho</span><span class="p">,</span> <span class="n">alto</span><span class="p">,</span> <span class="n">iter_max</span>
+<span class="p">)</span>
+<span class="n">imagen_objeto</span> <span class="o">=</span> <span class="n">eje</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
+    <span class="n">imagen_mandelbrot</span><span class="p">,</span>
+    <span class="n">extent</span><span class="o">=</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">),</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;turbo&quot;</span><span class="p">,</span>
+    <span class="n">interpolation</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">eje</span><span class="o">.</span><span class="n">set_autoscale_on</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">cbar</span> <span class="o">=</span> <span class="n">figura</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">imagen_objeto</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">eje</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">0.046</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.04</span><span class="p">)</span>
+<span class="c1"># cbar.set_label(&quot;Número de Iteraciones&quot;)</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Función auxiliar: corrige los límites de la vista para evitar zooms extremos</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="corregir_limites_vista">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.corregir_limites_vista">[documentos]</a>
+<span class="k">def</span> <span class="nf">corregir_limites_vista</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span>
+    <span class="n">rango_minimo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">1e-14</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x_max</span> <span class="o">-</span> <span class="n">x_min</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">rango_minimo</span><span class="p">:</span>
+        <span class="n">cx</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span> <span class="o">+</span> <span class="n">x_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">x_min</span> <span class="o">=</span> <span class="n">cx</span> <span class="o">-</span> <span class="n">rango_minimo</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="n">cx</span> <span class="o">+</span> <span class="n">rango_minimo</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">y_max</span> <span class="o">-</span> <span class="n">y_min</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">rango_minimo</span><span class="p">:</span>
+        <span class="n">cy</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_min</span> <span class="o">+</span> <span class="n">y_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">y_min</span> <span class="o">=</span> <span class="n">cy</span> <span class="o">-</span> <span class="n">rango_minimo</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">y_max</span> <span class="o">=</span> <span class="n">cy</span> <span class="o">+</span> <span class="n">rango_minimo</span> <span class="o">/</span> <span class="mi">2</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Función para actualizar la imagen del fractal</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="actualizar_fractal">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.actualizar_fractal">[documentos]</a>
+<span class="k">def</span> <span class="nf">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">imagen_objeto</span><span class="p">,</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span>
+    <span class="n">corregir_limites_vista</span><span class="p">()</span>
+    <span class="n">resolucion</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span> <span class="k">if</span> <span class="n">baja_resolucion</span> <span class="k">else</span> <span class="p">(</span><span class="n">ancho</span><span class="p">,</span> <span class="n">alto</span><span class="p">)</span>
+    <span class="n">imagen</span> <span class="o">=</span> <span class="n">generar_mandelbrot</span><span class="p">(</span>
+        <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="n">resolucion</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resolucion</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">iter_max</span>
+    <span class="p">)</span>
+    <span class="n">imagen_objeto</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">imagen</span><span class="p">)</span>
+    <span class="n">imagen_objeto</span><span class="o">.</span><span class="n">set_extent</span><span class="p">((</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">))</span>
+    <span class="n">imagen_objeto</span><span class="o">.</span><span class="n">set_clim</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">iter_max</span><span class="p">)</span>
+    <span class="n">eje</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">)</span>
+    <span class="n">eje</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">)</span>
+    <span class="n">figura</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw_idle</span><span class="p">()</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Función de easing (suavizado cúbico)</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="suavizado_cubico">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.suavizado_cubico">[documentos]</a>
+<span class="k">def</span> <span class="nf">suavizado_cubico</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">**</span> <span class="mi">3</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Función de animación “estática”</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="animar_secuencia_zoom">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.animar_secuencia_zoom">[documentos]</a>
+<span class="k">def</span> <span class="nf">animar_secuencia_zoom</span><span class="p">(</span><span class="n">limites_objetivo</span><span class="p">,</span> <span class="n">pasos</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">retardo</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="n">objetivo_pendiente</span><span class="p">,</span> <span class="n">animando</span><span class="p">,</span> <span class="n">cancelar_animacion</span>
+    <span class="n">animando</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">objetivo_actual</span> <span class="o">=</span> <span class="n">limites_objetivo</span>
+    <span class="k">while</span> <span class="n">objetivo_actual</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">objetivo_pendiente</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">limites_inicio</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">paso</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pasos</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cancelar_animacion</span><span class="p">:</span>
+                <span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">animando</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">return</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">suavizado_cubico</span><span class="p">((</span><span class="n">paso</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">pasos</span><span class="p">)</span>
+            <span class="n">nuevo_x_min</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">objetivo_actual</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">nuevo_x_max</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">objetivo_actual</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">nuevo_y_min</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">objetivo_actual</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">nuevo_y_max</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">objetivo_actual</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">nuevo_x_min</span><span class="p">,</span>
+                <span class="n">nuevo_x_max</span><span class="p">,</span>
+                <span class="n">nuevo_y_min</span><span class="p">,</span>
+                <span class="n">nuevo_y_max</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">pause</span><span class="p">(</span><span class="n">retardo</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">objetivo_pendiente</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">objetivo_actual</span> <span class="o">=</span> <span class="n">objetivo_pendiente</span>
+    <span class="n">animando</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Función de animación dinámica (panning + zoom) en función de la distancia</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="animar_zoom_dinamico">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.animar_zoom_dinamico">[documentos]</a>
+<span class="k">def</span> <span class="nf">animar_zoom_dinamico</span><span class="p">(</span><span class="n">limites_objetivo</span><span class="p">,</span> <span class="n">pasos_totales</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">retardo</span><span class="o">=</span><span class="mf">0.005</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Realiza una animación que primero traslada (panning) el centro de la vista</span>
+<span class="sd">    hasta el centro de la región objetivo (si la diferencia es significativa)</span>
+<span class="sd">    y luego realiza el zoom hasta llegar a &#39;limites_objetivo&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="n">cancelar_animacion</span>
+
+    <span class="c1"># Centro actual y centro objetivo</span>
+    <span class="n">centro_actual</span> <span class="o">=</span> <span class="p">((</span><span class="n">x_min</span> <span class="o">+</span> <span class="n">x_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">y_min</span> <span class="o">+</span> <span class="n">y_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">centro_objetivo</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Distancia entre centros y ancho actual (para definir un umbral)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">centro_objetivo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">centro_actual</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">centro_objetivo</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">centro_actual</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">distancia</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
+    <span class="n">ancho_actual</span> <span class="o">=</span> <span class="n">x_max</span> <span class="o">-</span> <span class="n">x_min</span>
+
+    <span class="c1"># Si la diferencia de centros es mayor que un cierto porcentaje del ancho actual,</span>
+    <span class="c1"># se realiza primero una animación de panning.</span>
+    <span class="n">umbral_pan</span> <span class="o">=</span> <span class="n">ancho_actual</span> <span class="o">*</span> <span class="mf">0.2</span>  <span class="c1"># 20% del ancho actual</span>
+    <span class="k">if</span> <span class="n">distancia</span> <span class="o">&gt;</span> <span class="n">umbral_pan</span><span class="p">:</span>
+        <span class="c1"># Se asignan un número de pasos para panning y zoom (se pueden ajustar)</span>
+        <span class="n">pasos_pan</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pasos_totales</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">pasos_zoom</span> <span class="o">=</span> <span class="n">pasos_totales</span> <span class="o">-</span> <span class="n">pasos_pan</span>
+
+        <span class="c1"># Etapa de panning: se interpola el centro sin cambiar el zoom actual.</span>
+        <span class="n">centro_inicio</span> <span class="o">=</span> <span class="n">centro_actual</span>
+        <span class="k">for</span> <span class="n">paso</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pasos_pan</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cancelar_animacion</span><span class="p">:</span>
+                <span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">return</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">suavizado_cubico</span><span class="p">((</span><span class="n">paso</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">pasos_pan</span><span class="p">)</span>
+            <span class="n">nuevo_centro_x</span> <span class="o">=</span> <span class="n">centro_inicio</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">nuevo_centro_y</span> <span class="o">=</span> <span class="n">centro_inicio</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="c1"># Se mantiene el tamaño actual de la ventana</span>
+            <span class="n">mitad_ancho</span> <span class="o">=</span> <span class="n">ancho_actual</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="n">mitad_alto</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_max</span> <span class="o">-</span> <span class="n">y_min</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="n">nuevo_x_min</span> <span class="o">=</span> <span class="n">nuevo_centro_x</span> <span class="o">-</span> <span class="n">mitad_ancho</span>
+            <span class="n">nuevo_x_max</span> <span class="o">=</span> <span class="n">nuevo_centro_x</span> <span class="o">+</span> <span class="n">mitad_ancho</span>
+            <span class="n">nuevo_y_min</span> <span class="o">=</span> <span class="n">nuevo_centro_y</span> <span class="o">-</span> <span class="n">mitad_alto</span>
+            <span class="n">nuevo_y_max</span> <span class="o">=</span> <span class="n">nuevo_centro_y</span> <span class="o">+</span> <span class="n">mitad_alto</span>
+            <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">nuevo_x_min</span><span class="p">,</span>
+                <span class="n">nuevo_x_max</span><span class="p">,</span>
+                <span class="n">nuevo_y_min</span><span class="p">,</span>
+                <span class="n">nuevo_y_max</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">pause</span><span class="p">(</span><span class="n">retardo</span><span class="p">)</span>
+
+        <span class="c1"># Etapa de zoom: se interpola desde la ventana actual hasta &#39;limites_objetivo&#39;.</span>
+        <span class="n">limites_inicio</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">paso</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pasos_zoom</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cancelar_animacion</span><span class="p">:</span>
+                <span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">return</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">suavizado_cubico</span><span class="p">((</span><span class="n">paso</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">pasos_zoom</span><span class="p">)</span>
+            <span class="n">nuevo_x_min</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">nuevo_x_max</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">nuevo_y_min</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">nuevo_y_max</span> <span class="o">=</span> <span class="n">limites_inicio</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="n">limites_objetivo</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span>
+            <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">nuevo_x_min</span><span class="p">,</span>
+                <span class="n">nuevo_x_max</span><span class="p">,</span>
+                <span class="n">nuevo_y_min</span><span class="p">,</span>
+                <span class="n">nuevo_y_max</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">pause</span><span class="p">(</span><span class="n">retardo</span><span class="p">)</span>
+        <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Si la diferencia es pequeña, se usa la animación estática.</span>
+        <span class="n">animar_secuencia_zoom</span><span class="p">(</span><span class="n">limites_objetivo</span><span class="p">,</span> <span class="n">pasos</span><span class="o">=</span><span class="n">pasos_totales</span><span class="p">,</span> <span class="n">retardo</span><span class="o">=</span><span class="n">retardo</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Función para iniciar la animación dinámica</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="iniciar_animacion_dinamica">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.iniciar_animacion_dinamica">[documentos]</a>
+<span class="k">def</span> <span class="nf">iniciar_animacion_dinamica</span><span class="p">(</span><span class="n">limites_objetivo</span><span class="p">,</span> <span class="n">pasos</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">retardo</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">animando</span><span class="p">,</span> <span class="n">objetivo_pendiente</span>
+    <span class="k">if</span> <span class="n">animando</span><span class="p">:</span>
+        <span class="n">objetivo_pendiente</span> <span class="o">=</span> <span class="n">limites_objetivo</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">animando</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">animar_zoom_dinamico</span><span class="p">(</span><span class="n">limites_objetivo</span><span class="p">,</span> <span class="n">pasos_totales</span><span class="o">=</span><span class="n">pasos</span><span class="p">,</span> <span class="n">retardo</span><span class="o">=</span><span class="n">retardo</span><span class="p">)</span>
+        <span class="n">animando</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Función para realizar zoom (acercar o alejar) según un factor.</span>
+<span class="c1"># factor &lt; 1: acercar; factor &gt; 1: alejar.</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="zoomear">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.zoomear">[documentos]</a>
+<span class="k">def</span> <span class="nf">zoomear</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="n">pasos</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">retardo</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span>
+    <span class="n">centro_x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span> <span class="o">+</span> <span class="n">x_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">centro_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_min</span> <span class="o">+</span> <span class="n">y_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">ancho_actual</span> <span class="o">=</span> <span class="n">x_max</span> <span class="o">-</span> <span class="n">x_min</span>
+    <span class="n">alto_actual</span> <span class="o">=</span> <span class="n">y_max</span> <span class="o">-</span> <span class="n">y_min</span>
+    <span class="n">ancho_objetivo</span> <span class="o">=</span> <span class="n">ancho_actual</span> <span class="o">*</span> <span class="n">factor</span>
+    <span class="n">alto_objetivo</span> <span class="o">=</span> <span class="n">alto_actual</span> <span class="o">*</span> <span class="n">factor</span>
+    <span class="n">limites_objetivo</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">centro_x</span> <span class="o">-</span> <span class="n">ancho_objetivo</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">centro_x</span> <span class="o">+</span> <span class="n">ancho_objetivo</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">centro_y</span> <span class="o">-</span> <span class="n">alto_objetivo</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">centro_y</span> <span class="o">+</span> <span class="n">alto_objetivo</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">iniciar_animacion_dinamica</span><span class="p">(</span><span class="n">limites_objetivo</span><span class="p">,</span> <span class="n">pasos</span><span class="p">,</span> <span class="n">retardo</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Eventos de teclado:</span>
+<span class="c1"># - &quot;z&quot;: acercar</span>
+<span class="c1"># - &quot;x&quot;: alejar</span>
+<span class="c1"># - Flechas: panning (mover la vista en 2D)</span>
+<span class="c1"># Al pulsar una flecha se cancela la animación en curso.</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<div class="viewcode-block" id="evento_teclado">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.evento_teclado">[documentos]</a>
+<span class="k">def</span> <span class="nf">evento_teclado</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="n">cancelar_animacion</span>
+    <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span>
+        <span class="n">zoomear</span><span class="p">(</span><span class="mf">0.75</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span>
+        <span class="n">zoomear</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">0.75</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+        <span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_max</span> <span class="o">-</span> <span class="n">x_min</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span>
+        <span class="n">x_min</span> <span class="o">-=</span> <span class="n">dx</span>
+        <span class="n">x_max</span> <span class="o">-=</span> <span class="n">dx</span>
+        <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span><span class="p">:</span>
+        <span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_max</span> <span class="o">-</span> <span class="n">x_min</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span>
+        <span class="n">x_min</span> <span class="o">+=</span> <span class="n">dx</span>
+        <span class="n">x_max</span> <span class="o">+=</span> <span class="n">dx</span>
+        <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;down&quot;</span><span class="p">:</span>
+        <span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_max</span> <span class="o">-</span> <span class="n">y_min</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span>
+        <span class="n">y_min</span> <span class="o">+=</span> <span class="n">dy</span>
+        <span class="n">y_max</span> <span class="o">+=</span> <span class="n">dy</span>
+        <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;up&quot;</span><span class="p">:</span>
+        <span class="n">cancelar_animacion</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_max</span> <span class="o">-</span> <span class="n">y_min</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.05</span>
+        <span class="n">y_min</span> <span class="o">-=</span> <span class="n">dy</span>
+        <span class="n">y_max</span> <span class="o">-=</span> <span class="n">dy</span>
+        <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+
+<span class="n">figura</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span><span class="s2">&quot;key_press_event&quot;</span><span class="p">,</span> <span class="n">evento_teclado</span><span class="p">)</span>
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Slider para modificar el número máximo de iteraciones (de 100 a 3000)</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="n">eje_iter</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">])</span>
+<span class="n">control_iter</span> <span class="o">=</span> <span class="n">Slider</span><span class="p">(</span><span class="n">eje_iter</span><span class="p">,</span> <span class="s2">&quot;Iter Máx&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="n">valinit</span><span class="o">=</span><span class="n">iter_max</span><span class="p">,</span> <span class="n">valstep</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="actualizar_iter_max">
+<a class="viewcode-back" href="../mandelbrot.html#mandelbrot.actualizar_iter_max">[documentos]</a>
+<span class="k">def</span> <span class="nf">actualizar_iter_max</span><span class="p">(</span><span class="n">valor</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">iter_max</span>
+    <span class="n">iter_max</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">valor</span><span class="p">)</span>
+    <span class="n">actualizar_fractal</span><span class="p">(</span><span class="n">baja_resolucion</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+
+<span class="n">control_iter</span><span class="o">.</span><span class="n">on_changed</span><span class="p">(</span><span class="n">actualizar_iter_max</span><span class="p">)</span>
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Botones para hacer &quot;big zoom&quot; a regiones predefinidas.</span>
+<span class="c1"># Se definen los límites con np.float64 (usando 17 dígitos cuando corresponda)</span>
+<span class="c1"># para explorar el fractal en profundidad.</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="n">especificaciones_botones</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span>
+        <span class="s2">&quot;Mandelbrot Original&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">2.25</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">1.25</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)),</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="s2">&quot;Minibrot&quot;</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.943</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.94</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">0.0012</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">0.0012</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="s2">&quot;Bulb&quot;</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.764</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.7527</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">0.01925</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">0.0109</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="s2">&quot;Tentáculo&quot;</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.76856260800000000</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.76856260450000000</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">0.00079000800000000</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">0.00079000500000000</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+    <span class="p">(</span>
+        <span class="s2">&quot;Conjunto de Julia&quot;</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.76877930000000000</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">1.76877842000000000</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">0.00173910000000000</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="o">-</span><span class="mf">0.00173871000000000</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+
+<span class="n">botones</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">especificaciones_botones</span><span class="p">:</span>
+    <span class="n">etiqueta</span><span class="p">,</span> <span class="n">limites</span> <span class="o">=</span> <span class="n">spec</span>
+    <span class="n">eje_boton</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">(</span>
+        <span class="p">[</span><span class="mf">0.82</span><span class="p">,</span> <span class="mf">0.75</span> <span class="o">-</span> <span class="n">especificaciones_botones</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.07</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">boton</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="n">eje_boton</span><span class="p">,</span> <span class="n">etiqueta</span><span class="p">)</span>
+    <span class="c1"># Se usa iniciar_animacion_dinamica en lugar de la función anterior</span>
+    <span class="n">boton</span><span class="o">.</span><span class="n">on_clicked</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">evento</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="n">limites</span><span class="p">:</span> <span class="n">iniciar_animacion_dinamica</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">pasos</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">retardo</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">botones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">boton</span><span class="p">)</span>
+
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="c1"># Mostrar la ventana</span>
+<span class="c1"># ---------------------------------------------------------------------</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Derechos de autor 2025, Mateo Cumbal, Daniel Flores, Johann Pasquel, Luis Tipán.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
